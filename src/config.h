@@ -15,7 +15,7 @@
 #define TCXO_FREQ 26000000UL
 
 #define WSPR_TONE_SPACING 146          // ~1.46 Hz
-#define WSPR_DELAY 683          // Delay value for WSPR
+#define WSPR_DELAY 683000          // Delay value for WSPR in us
 #define WSPR_DEFAULT_FREQ 14097200UL
 
 #define BAND "20m"

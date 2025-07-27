@@ -37,7 +37,7 @@ void setup()
 void loop()
 {
     gps.update();
-    if ((gps.getMinute() % 10 == telemetry.getMinute()) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()))
+    if ((gps.getMinute() % 10 == telemetry.getMinute()) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()) && !telemetry.isTransmitting())
     {
         lastMinute = gps.getMinute(); // Update last minute to prevent duplicate sends
 
@@ -48,7 +48,7 @@ void loop()
         telemetry.sendType1(call, loc, 13);
         // Turn on the GPS module again
         digitalWrite(GPS_ON, HIGH);
-    } else if ((gps.getMinute() % 10 == (telemetry.getMinute() + 2) % 10) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()))
+    } else if ((gps.getMinute() % 10 == (telemetry.getMinute() + 2) % 10) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()) && !telemetry.isTransmitting())
     {
         sensors.update();
         lastMinute = gps.getMinute(); // Update last minute to prevent duplicate sends
@@ -61,7 +61,7 @@ void loop()
         // Turn on the GPS module again
         digitalWrite(GPS_ON, HIGH);
     }
-    else if (lastPrintTime == 0 || millis() - lastPrintTime > 10000)
+    else if ((lastPrintTime == 0 || millis() - lastPrintTime > 10000) && !telemetry.isTransmitting())
     {
         lastPrintTime = millis();
         DEBUG_PRINTLN("GPS Data:");

@@ -1,7 +1,11 @@
 #include "telemetry.h"
 
-Telemetry::Telemetry(Si5351& si5351) : si5351(si5351)
+// Add static instance pointer
+Telemetry* Telemetry::instance = nullptr;
+
+Telemetry::Telemetry(Si5351& si5351) : si5351(si5351), transmitting(false), current_symbol(0)
 {
+    instance = this; // Set static instance for callback
 }
 
 void Telemetry::init()
@@ -15,8 +19,13 @@ void Telemetry::init()
     delay(500);
     si5351.init(SI5351_CRYSTAL_LOAD_0PF, 26000000UL, 0);
     // Set CLK0 output
-    si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA); // Set for max power if desired
-    si5351.output_enable(SI5351_CLK0, 0); // Disable the clock initially
+    si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);
+    si5351.output_enable(SI5351_CLK0, 0);
+
+    // Initialize hardware timer
+    timer = new HardwareTimer(TIM1); // Use TIM1 or another available timer
+    timer->setOverflow(WSPR_DELAY, MICROSEC_FORMAT); // Set period to WSPR_DELAY us
+    timer->attachInterrupt(timerCallback);
 
     // Get channel details
     cd = WsprChannelMap::GetChannelDetails(BAND, CHANNEL);
@@ -91,21 +100,49 @@ void Telemetry::sendBasic(char loc[], int32_t altitudeMeters, int8_t temperature
 
 void Telemetry::tx(unsigned long freq)
 {
-    DEBUG_PRINTLN("Starting WSPR TX!");
-    uint8_t i;
-
-    // Reset the tone to the base frequency and turn on the output
-    si5351.output_enable(SI5351_CLK0, 1);
-
-    for (i = 0; i < WSPR_SYMBOL_COUNT; i++)
-    {
-        si5351.set_freq((freq * 100) + (tx_buffer[i] * WSPR_TONE_SPACING), SI5351_CLK0);
-        delay(WSPR_DELAY);
+    if (transmitting) {
+        // We shouldn't get here anyway but just in case
+        DEBUG_PRINTLN("Already transmitting, skipping...");
+        return;
     }
+    
+    DEBUG_PRINTLN("Starting WSPR TX!");
 
-    // Turn off the output
-    si5351.output_enable(SI5351_CLK0, 0);
-    DEBUG_PRINTLN("DONE!");
+    // Initialize transmission state
+    transmitting = true;
+    current_symbol = 0;
+    base_freq = freq;
+    
+    // Set first symbol and enable output
+    si5351.set_freq((base_freq * 100) + (tx_buffer[0] * WSPR_TONE_SPACING), SI5351_CLK0);
+    si5351.output_enable(SI5351_CLK0, 1);
+    
+    // Start the timer
+    timer->resume();
+}
+
+// Static timer callback function
+void Telemetry::timerCallback()
+{
+    if (!instance || !instance->transmitting) {
+        return;
+    }
+    
+    instance->current_symbol++;
+    
+    if (instance->current_symbol >= WSPR_SYMBOL_COUNT) {
+        // Transmission complete
+        instance->si5351.output_enable(SI5351_CLK0, 0);
+        instance->timer->pause();
+        instance->transmitting = false;
+        DEBUG_PRINTLN("DONE!");
+    } else {
+        // Set next symbol frequency
+        instance->si5351.set_freq(
+            (instance->base_freq * 100) + (instance->tx_buffer[instance->current_symbol] * WSPR_TONE_SPACING), 
+            SI5351_CLK0
+        );
+    }
 }
 
 void Telemetry::set_tx_buffer(const char* call, const char* loc, uint8_t dbm) {

@@ -26,6 +26,9 @@ public:
     {
         return cd.min;
     }
+    bool isTransmitting() const {
+        return transmitting;
+    }
 private:
     void tx(unsigned long freq);
     void set_tx_buffer(const char* call, const char* loc, uint8_t dbm);
@@ -33,6 +36,15 @@ private:
     JTEncode jtencode;
     uint8_t tx_buffer[255];
     WsprChannelMap::ChannelDetails cd;
+
+    HardwareTimer *timer;
+    volatile bool transmitting;
+    volatile uint8_t current_symbol;
+    volatile unsigned long base_freq;
+
+    // Timer callback function (must be static)
+    static void timerCallback();
+    static Telemetry* instance; // For callback access
 };
 
 #endif
