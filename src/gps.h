@@ -22,52 +22,52 @@ public:
     void update();
 
     // Accessors
-    bool isValidFix() const
+    bool isValidFix()
     {
         return gps.location.isValid() && gps.location.age() < GPS_FIX_AGE;
     }
-    double getLatitude() const
+    double getLatitude()
     {
-        return latitude;
+        return gps.location.lat();
     }
-    double getLongitude() const
+    double getLongitude()
     {
-        return longitude;
+        return gps.location.lng();
     }
-    double getSpeed() const
+    double getSpeed()
     {
-        return speed;
+        return gps.speed.knots();
     }
-    double getAltitude() const
+    double getAltitude()
     {
-        return altitude;
+        return gps.altitude.meters();
     }
-    uint8_t getSatellites() const
+    uint8_t getSatellites()
     {
-        return satellites;
+        return gps.satellites.value();
     }
-    uint32_t getTime() const
+    uint32_t getTime()
     {
-        return time;
+        return gps.time.value();
     }
-    uint8_t getHour() const
+    uint8_t getHour()
     {
-        return hour;
+        return gps.time.hour();
     }
-    uint8_t getMinute() const
+    uint8_t getMinute()
     {
-        return minute;
+        return gps.time.minute();
     }
-    uint8_t getSec() const
+    uint8_t getSec()
     {
-        return second;
+        return gps.time.second();
     }
     void get_m6(char *loc) {
         strcpy(loc, locator);
         //strcpy(loc, "IO90WX");
     }
-    uint8_t getAge() const {
-        return age;
+    uint8_t getAge() {
+        return gps.time.age();
     }
     void setUpdated(bool value) {
         updated = value;
