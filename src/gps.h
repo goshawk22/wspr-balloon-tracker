@@ -63,8 +63,8 @@ public:
         return second;
     }
     void get_m6(char *loc) {
-        //strcpy(loc, locator);
-        strcpy(loc, "IO90WX");
+        strcpy(loc, locator);
+        //strcpy(loc, "IO90WX");
     }
     uint8_t getAge() const {
         return age;
