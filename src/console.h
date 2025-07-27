@@ -3,19 +3,21 @@
 #include "config.h"
 #include <SoftwareSerial.h>
 
-// Uncomment to enable debug printing
-#define DEBUG
+//extern SoftwareSerial SerialPC;
 
-// Uncomment to enable verbose printing
-// #define VERBOSE
-
-extern SoftwareSerial SerialPC;
+#define SerialPC Serial1
 
 #ifdef DEBUG
+#ifndef BMP_DEBUG
 #define DEBUG_SERIAL SerialPC
 #define DEBUG_PRINTLN(x) DEBUG_SERIAL.println(x)
 #define DEBUG_PRINT(x) DEBUG_SERIAL.print(x)
 #define DEBUG_PRINTF(...) DEBUG_SERIAL.printf(__VA_ARGS__)
+#else
+#define DEBUG_PRINTLN(x)
+#define DEBUG_PRINT(x)
+#define DEBUG_PRINTF(...)
+#endif
 #else
 #define DEBUG_PRINTLN(x)
 #define DEBUG_PRINT(x)

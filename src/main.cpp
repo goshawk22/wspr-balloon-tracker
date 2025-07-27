@@ -11,14 +11,21 @@ Sensors sensors;
 
 char call[] = CALLSIGN;
 
-SoftwareSerial SerialPC(PC_SERIAL_RX, PC_SERIAL_TX);
+//#ifndef BMP_DEBUG
+//SoftwareSerial SerialPC(PC_SERIAL_RX, PC_SERIAL_TX);
+//#endif
 
 uint32_t lastPrintTime = 0;
 uint8_t lastMinute = 61; // Initialize to a value that won't match the first minute check
 
 void setup()
 {
-    SerialPC.begin(9600);
+#ifndef BMP_DEBUG
+    // Initialize the GPS serial port
+    SerialPC.setRx(PA_10_R);
+    SerialPC.setTx(PA_9_R);
+    SerialPC.begin(115200); // Set the baud rate for SerialPC
+#endif
     delay(1000);
     DEBUG_PRINTLN("Starting...");
 
