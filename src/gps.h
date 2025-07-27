@@ -4,7 +4,6 @@
 #include "config.h"
 #include "console.h"
 #include <TinyGPS++.h>
-#include <SoftwareSerial.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>

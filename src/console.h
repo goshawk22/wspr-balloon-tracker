@@ -1,9 +1,6 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 #include "config.h"
-#include <SoftwareSerial.h>
-
-//extern SoftwareSerial SerialPC;
 
 #define SerialPC Serial2
 

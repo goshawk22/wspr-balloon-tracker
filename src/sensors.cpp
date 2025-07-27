@@ -1,5 +1,4 @@
 #include "sensors.h"
-#include "stm32yyxx_ll_adc.h"
 
 //HardwareSerial gpsSerial(GPS_SERIAL_RX, GPS_SERIAL_TX);
 

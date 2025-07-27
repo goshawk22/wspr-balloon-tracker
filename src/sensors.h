@@ -3,6 +3,8 @@
 
 #include "config.h"
 #include "console.h"
+#include "stm32yyxx_ll_adc.h"
+#include "Arduino.h"
 
 class Sensors
 {

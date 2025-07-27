@@ -48,7 +48,7 @@ void GPS::update()
     {
         // DEBUG_PRINTLN("GPS Serial Data Available");
         char c = SerialLP1.read();
-        DEBUG_PRINT(c);
+        //DEBUG_PRINT(c);
         // Serial.print(c);
         gps.encode(c);
     }
