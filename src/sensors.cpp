@@ -14,29 +14,12 @@ void Sensors::begin()
 
 void Sensors::update()
 {
-    //float v_adc = analogRead(ADC_PIN) * 3.3 / 4095.0; // 12-bit ADC
-    //voltage = v_adc * VOLTAGE_DIVIDER_MULTIPLIER;
 
-    //DEBUG_PRINTLN("Voltage: " + String(voltage) + " V");
-
-    float v_adc = readVoltage(readVref(), ADC_PIN) * 3.3 / 4095.0; // 12-bit ADC
-    voltage = v_adc * VOLTAGE_DIVIDER_MULTIPLIER;
-
-    //DEBUG_PRINTLN("Voltage: " + String(voltage) + " V");
-
-    //uint16_t TS_CAL1 = *((uint16_t*) TS_CAL1_ADDR); // Read calibration value @ 30°C
-    //uint16_t TS_CAL2 = *((uint16_t*) TS_CAL2_ADDR); // Read calibration value @ 130°C
-
-    //temperature = ((analogRead(ATEMP) - TS_CAL1) * (TEMP130_CAL_TEMP - TEMP30_CAL_TEMP)) /
-    //     (TS_CAL2 - TS_CAL1) + TEMP30_CAL_TEMP;
-    
-
-    //DEBUG_PRINTLN("Temperature: " + String(temperature) + " °C");
+    float v_adc = readVoltage(readVref(), ADC_PIN);
+    voltage = v_adc * VOLTAGE_DIVIDER_MULTIPLIER / 1000.0; // Convert to volts
 
     temperature = __LL_ADC_CALC_TEMPERATURE(readVref(), analogRead(ATEMP), LL_ADC_RESOLUTION_12B);
-    //DEBUG_PRINTLN("Temperature: " + String(temperature) + " °C");
 }
-
 
 uint32_t Sensors::readVref() {
     uint32_t Vref = 3000;

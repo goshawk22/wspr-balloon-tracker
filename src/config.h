@@ -23,5 +23,5 @@
 
 #define CALLSIGN "M7GAQ"
 
-#define ADC_PIN PB_1
+#define ADC_PIN PB1
 #define VOLTAGE_DIVIDER_MULTIPLIER 2.0
