@@ -30,19 +30,29 @@ void setup()
 void loop()
 {
     gps.update();
-    sensors.update();
     if ((gps.getMinute() % 10 == telemetry.getMinute()) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()))
     {
         lastMinute = gps.getMinute(); // Update last minute to prevent duplicate sends
+
+        // Turn off the GPS module to save power
+        digitalWrite(GPS_ON, LOW);
         char loc[6];
         gps.get_m6(loc);
         telemetry.sendType1(call, loc, 13);
+        // Turn on the GPS module again
+        digitalWrite(GPS_ON, HIGH);
     } else if ((gps.getMinute() % 10 == (telemetry.getMinute() + 2) % 10) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()))
     {
+        sensors.update();
         lastMinute = gps.getMinute(); // Update last minute to prevent duplicate sends
+        
+        // Turn off the GPS module to save power
+        digitalWrite(GPS_ON, LOW);
         char loc[6];
         gps.get_m6(loc);
         telemetry.sendBasic(loc, gps.getAltitude(), sensors.getTemperature(), sensors.getVoltage(), gps.getSpeed());
+        // Turn on the GPS module again
+        digitalWrite(GPS_ON, HIGH);
     }
     else if (lastPrintTime == 0 || millis() - lastPrintTime > 10000)
     {
@@ -51,7 +61,6 @@ void loop()
         DEBUG_PRINTF("Lat: %.6f, Lon: %.6f, Alt: %.2f, Speed: %.2f, Time: %02d:%02d:%02d, Satellites: %u\n",
                      gps.getLatitude(), gps.getLongitude(), gps.getAltitude(),
                      gps.getSpeed(), gps.getHour(), gps.getMinute(), gps.getSec(), gps.getSatellites());
-        DEBUG_PRINTLN(gps.getSatellites());
     }
     //delay(500);
 }
