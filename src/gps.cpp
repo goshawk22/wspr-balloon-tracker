@@ -13,10 +13,13 @@ void GPS::begin()
     delay(1000); // Wait for GPS to power up
     DEBUG_PRINTLN("[GPS] Powering on...");
 
+    delay(500); // Allow GPS to stabilize
+
     // Initialize the GPS serial port
-    Serial2.setRx(GPS_SERIAL_RX);
-    Serial2.setTx(GPS_SERIAL_TX);
-    Serial2.begin(9600);
+    // clock must be in the range [3x baud rate..4096 x baud rate], so max clock is 9600 * 4096 = 39321600
+    SerialLP1.setRx(GPS_SERIAL_RX);
+    SerialLP1.setTx(GPS_SERIAL_TX);
+    SerialLP1.begin(GPS_SERIAL_BAUD); // Set the baud rate for GPS
     delay(1000); // Wait for GPS to initialize
 
     /** Skip this for now
@@ -41,36 +44,22 @@ void GPS::begin()
 void GPS::update()
 {
     // Read data from the GPS serial port
-    while (Serial2.available())
+    while (SerialLP1.available())
     {
         // DEBUG_PRINTLN("GPS Serial Data Available");
-        char c = Serial2.read();
-        // DEBUG_PRINT(c);
+        char c = SerialLP1.read();
+        DEBUG_PRINT(c);
         // Serial.print(c);
         gps.encode(c);
     }
     // Update cached data if a valid fix is available
     if (gps.speed.isUpdated() && gps.satellites.isUpdated()) // ensures that GGA and RMC sentences have been received
     {
-        // DEBUG_PRINTLN("[GPS] Valid fix received.");
-        //latitude = gps.location.lat();
-        //longitude = gps.location.lng();
-        //altitude = gps.altitude.meters();
-        //satellites = gps.satellites.value();
-        //speed = gps.speed.knots();
-        //time = gps.time.value();
-        //hour = gps.time.hour();
-        //minute = gps.time.minute();
-        //second = gps.time.second();
-
-        // Also update the locator
+        // update the locator
         update_mh_6(gps.location.lat(), gps.location.lng());
 
         updated = true; // Mark as updated whenever we receive new GPS data
     }
-    //age = gps.time.age();
-    // DEBUG_PRINTLN(time);
-    // DEBUG_PRINTLN(age);
 }
 
 // The following were taken from https://github.com/knormoyle/rp2040_si5351_wspr/blob/main/tracker/mh_functions.cpp

@@ -5,7 +5,7 @@
 
 //extern SoftwareSerial SerialPC;
 
-#define SerialPC Serial1
+#define SerialPC Serial2
 
 #ifdef DEBUG
 #ifndef BMP_DEBUG
