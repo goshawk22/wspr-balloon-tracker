@@ -7,6 +7,7 @@
 #define GPS_VCC_ON PA6
 #define GPS_ON PA5
 #define GPS_SERIAL_BAUD 9600
+#define GPS_PPS_PIN PB0_ALT1
 
 #define VFO_SDA PB7
 #define VFO_SCL PB6
