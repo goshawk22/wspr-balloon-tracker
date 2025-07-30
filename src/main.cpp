@@ -3,6 +3,7 @@
 #include "config.h"
 #include "console.h"
 #include "sensors.h"
+#include <IWatchdog.h>
 
 GPS gps;
 Si5351 si5351;
@@ -17,6 +18,7 @@ char tx_loc[8]; // locator at start of type 1 frame, needs to stay the same for 
 
 void setup()
 {
+    IWatchdog.begin(16000000); // Set watchdog timeout to 16 seconds
 #ifndef BMP_DEBUG
     // Initialize the GPS serial port
     SerialPC.setRx(PC_SERIAL_RX);
@@ -25,14 +27,16 @@ void setup()
 #endif
     delay(1000);
     DEBUG_PRINTLN("Starting...");
-
+    IWatchdog.reload();
     gps.begin();
     telemetry.init();
     sensors.begin();
+    IWatchdog.reload();
 }
 
 void loop()
 {
+    IWatchdog.reload();
     gps.update();
     if ((gps.getMinute() % 10 == telemetry.getMinute()) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()) && !telemetry.isTransmitting())
     {
