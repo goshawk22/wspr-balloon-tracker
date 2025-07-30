@@ -30,6 +30,12 @@ public:
     bool isTransmitting() const {
         return transmitting;
     }
+    bool isExtendedSent() const {
+        return sentExtended;
+    }
+    void setExtendedSent(bool value) {
+        sentExtended = value;
+    }
 private:
     void tx(unsigned long freq);
     void set_tx_buffer(const char* call, const char* loc, uint8_t dbm);
@@ -42,6 +48,8 @@ private:
     volatile bool transmitting;
     volatile uint8_t current_symbol;
     volatile unsigned long base_freq;
+
+    bool sentExtended = false; // Flag to indicate if extended telemetry has been sent
 
     // Timer callback function (must be static)
     static void timerCallback();

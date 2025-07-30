@@ -152,6 +152,8 @@ void Telemetry::sendExtended(char loc[], float pressure, uint8_t satellites) {
     }
     DEBUG_PRINTLN();
 
+    sentExtended = true; // Set flag to indicate extended telemetry has been sent
+
     tx(cd.freq);
 }
 
@@ -192,8 +194,6 @@ void Telemetry::timerCallback()
         instance->si5351.output_enable(SI5351_CLK0, 0);
         instance->timer->pause();
         instance->transmitting = false;
-        // Turn GPS back on
-        digitalWrite(GPS_ON, HIGH);
         DEBUG_PRINTLN("DONE!");
     } else {
         // Set next symbol frequency

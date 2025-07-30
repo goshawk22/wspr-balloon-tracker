@@ -1,7 +1,10 @@
 #include "gps.h"
 
+GPS *GPS::instance = nullptr;
+
 GPS::GPS()
 {
+    instance = this;
 }
 
 void GPS::begin()
@@ -21,6 +24,14 @@ void GPS::begin()
     SerialLP1.setTx(GPS_SERIAL_TX);
     SerialLP1.begin(GPS_SERIAL_BAUD); // Set the baud rate for GPS
     delay(1000); // Wait for GPS to initialize
+
+    DEBUG_PRINTLN("[GPS] Setting up PPS interrupt...");
+    setupPPS(); // Setup PPS pin and interrupt
+
+    DEBUG_PRINTLN("[GPS] Initializing RTC...");
+    STM32RTC &rtc = STM32RTC::getInstance();
+    rtc.setClockSource(STM32RTC::HSE_CLOCK);
+    rtc.begin();
 
     /** Skip this for now
      *  Currently it's unclear whether these settings are preserved across resets
@@ -109,4 +120,102 @@ void GPS::update_mh_8(double lat, double lon)
         lat = fmod(lat, LAT_F[i]);
     }
     locator[8] = 0; // null term
+}
+
+void GPS::setupPPS()
+{
+    uint32_t channel;
+    // Automatically retrieve TIM instance and channel associated to pin
+    // This is used to be compatible with all STM32 series automatically.
+    TIM_TypeDef *Instance = (TIM_TypeDef *)pinmap_peripheral(digitalPinToPinName(GPS_PPS_PIN), PinMap_PWM);
+    channel = STM_PIN_CHANNEL(pinmap_function(digitalPinToPinName(GPS_PPS_PIN), PinMap_PWM));
+
+    // Setup a high-resolution timer for PPS timing
+    pps_timer = new HardwareTimer(Instance);
+
+    // With a PrescalerFactor = 1, the minimum frequency value to measure is : TIM counter clock / CCR MAX
+    //  = (SystemCoreClock) / 65535
+    // Example on Nucleo_L476RG with systemClock at 80MHz, the minimum frequency is around 1,2 khz
+    // To reduce minimum frequency, it is possible to increase prescaler. But this is at a cost of precision.
+    // The maximum frequency depends on processing of the interruption and thus depend on board used
+    // Example on Nucleo_L476RG with systemClock at 80MHz the interruption processing is around 4,5 microseconds and thus Max frequency is around 220kHz
+    uint32_t PrescalerFactor = 1;
+    pps_timer->setPrescaleFactor(PrescalerFactor);
+
+    // Configure rising edge detection to measure frequency
+    pps_timer->setMode(channel, TIMER_INPUT_CAPTURE_RISING, GPS_PPS_PIN);
+    // No need to set overflow for input capture mode; just attach the interrupt
+    pps_timer->attachInterrupt(channel, ppsInterrupt);
+    pps_timer->resume();
+
+    // Attach interrupt to PPS pin - trigger on rising edge
+    // attachInterrupt(digitalPinToInterrupt(GPS_PPS_PIN), ppsInterrupt, RISING);
+
+    // pps_timer->resume();
+
+    DEBUG_PRINTLN("[GPS] PPS synchronization enabled");
+}
+
+void GPS::ppsInterrupt()
+{
+    DEBUG_PRINTLN("[GPS] PPS interrupt received");
+    if (instance)
+    {
+        instance->syncRTC();
+        DEBUG_PRINTF("GPS Time: %02d:%02d:%02d.%02d\n",
+                     instance->gps.time.hour(), instance->gps.time.minute(),
+                     instance->gps.time.second(), instance->gps.time.centisecond());
+        DEBUG_PRINTF("RTC Time: %02d:%02d:%02d.%02d\n",
+                     STM32RTC::getInstance().getHours(),
+                     STM32RTC::getInstance().getMinutes(),
+                     STM32RTC::getInstance().getSeconds(),
+                     STM32RTC::getInstance().getSubSeconds());
+    }
+}
+
+void GPS::syncRTC() {
+    if (millis() - last_sync_time > 30000 && gps.time.isValid() && gps.date.isValid()) {
+        // Get GPS time
+        int year = gps.date.year();
+        int month = gps.date.month();
+        int day = gps.date.day();
+        int hour = gps.time.hour();
+        int minute = gps.time.minute();
+        int second = gps.time.second() + 1;
+        
+        // Set STM32 RTC
+        STM32RTC& rtc = STM32RTC::getInstance();
+        rtc.setTime(hour, minute, second);
+        rtc.setDate(day, month, year);
+        rtc.setSubSeconds(0); // Set sub-seconds to 0 for simplicity
+        
+        last_sync_time = millis(); // Reset sync timer
+        DEBUG_PRINTLN("RTC synchronized with GPS time");
+    }
+    rtc_synced = true; // Set flag to indicate RTC has been synced
+}
+
+void GPS::enable()
+{
+    if (enabled) {
+        DEBUG_PRINTLN("[GPS] Already enabled.");
+        return;
+    }
+    digitalWrite(GPS_ON, HIGH);
+    delay(1000); // Allow GPS to power up
+    pps_timer->resume(); // Resume PPS timer
+    enabled = true;
+    DEBUG_PRINTLN("[GPS] Enabled.");
+}
+
+void GPS::disable()
+{
+    if (!enabled) {
+        DEBUG_PRINTLN("[GPS] Already disabled.");
+        return;
+    }
+    pps_timer->pause(); // Pause PPS timer
+    digitalWrite(GPS_ON, LOW);
+    enabled = false;
+    DEBUG_PRINTLN("[GPS] Disabled.");
 }
