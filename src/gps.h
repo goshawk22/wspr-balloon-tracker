@@ -61,7 +61,7 @@ public:
     {
         return gps.time.second();
     }
-    void get_m6(char *loc)
+    void get_m8(char *loc)
     {
         strcpy(loc, locator);
         // strcpy(loc, "IO90WX");

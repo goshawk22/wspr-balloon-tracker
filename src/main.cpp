@@ -47,7 +47,7 @@ void loop()
 
         // Turn off the GPS module to save power
         digitalWrite(GPS_ON, LOW);
-        gps.get_m6(tx_loc);
+        gps.get_m8(tx_loc);
         telemetry.sendType1(call, tx_loc, 13);
     } else if ((gps.getMinute() % 10 == (telemetry.getMinute() + 2) % 10) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()) && !telemetry.isTransmitting())
     {
