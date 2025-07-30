@@ -35,7 +35,12 @@ void Telemetry::sendType1(char call[], char loc[], uint8_t dbm) {
     DEBUG_PRINTLN("Sending Type 1 WSPR frame...");
     DEBUG_PRINTLN(call);
     DEBUG_PRINTLN(loc);
-    set_tx_buffer(call, loc, dbm);
+    // Ensure loc is only 6 characters (truncate if longer)
+    char loc6[7];
+    strncpy(loc6, loc, 6);
+    loc6[6] = '\0';
+
+    set_tx_buffer(call, loc6, dbm);
     tx(cd.freq);
 }
 
