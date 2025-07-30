@@ -13,6 +13,7 @@ char call[] = CALLSIGN;
 
 uint32_t lastPrintTime = 0;
 uint8_t lastMinute = 61; // Initialize to a value that won't match the first minute check
+char tx_loc[8]; // locator at start of type 1 frame, needs to stay the same for all 3 frames.
 
 void setup()
 {
@@ -36,26 +37,28 @@ void loop()
     if ((gps.getMinute() % 10 == telemetry.getMinute()) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()) && !telemetry.isTransmitting())
     {
         lastMinute = gps.getMinute(); // Update last minute to prevent duplicate sends
+        
+        // Get sensor measurements at the same time as GPS fix so all the data matches
+        sensors.update();
 
         // Turn off the GPS module to save power
         digitalWrite(GPS_ON, LOW);
-        char loc[6];
-        gps.get_m6(loc);
-        telemetry.sendType1(call, loc, 13);
-        // Turn on the GPS module again
-        digitalWrite(GPS_ON, HIGH);
+        gps.get_m6(tx_loc);
+        telemetry.sendType1(call, tx_loc, 13);
     } else if ((gps.getMinute() % 10 == (telemetry.getMinute() + 2) % 10) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()) && !telemetry.isTransmitting())
     {
-        sensors.update();
         lastMinute = gps.getMinute(); // Update last minute to prevent duplicate sends
         
         // Turn off the GPS module to save power
         digitalWrite(GPS_ON, LOW);
-        char loc[6];
-        gps.get_m6(loc);
-        telemetry.sendBasic(loc, gps.getAltitude(), sensors.getTemperature(), sensors.getVoltage(), gps.getSpeed());
-        // Turn on the GPS module again
-        digitalWrite(GPS_ON, HIGH);
+        telemetry.sendBasic(tx_loc, gps.getAltitude(), sensors.getTemperature(), sensors.getVoltage(), gps.getSpeed());
+    } else if ((gps.getMinute() % 10 == (telemetry.getMinute() + 4) % 10) && (gps.getSec() == 1) && (lastMinute != gps.getMinute()) && !telemetry.isTransmitting())
+    {
+        lastMinute = gps.getMinute(); // Update last minute to prevent duplicate sends
+        
+        // Turn off the GPS module to save power
+        digitalWrite(GPS_ON, LOW);
+        telemetry.sendExtended(tx_loc, sensors.getPressure(), gps.getSatellites());
     }
     else if ((lastPrintTime == 0 || millis() - lastPrintTime > 10000) && !telemetry.isTransmitting())
     {

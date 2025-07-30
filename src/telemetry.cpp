@@ -94,7 +94,59 @@ void Telemetry::sendBasic(char loc[], int32_t altitudeMeters, int8_t temperature
     DEBUG_PRINTLN("Grid4: " + String(grid4));
     DEBUG_PRINTLN("Power (dBm): " + String(powerDbm));
 
+    // Add debug output for the raw encoded buffer
     set_tx_buffer(callsign, grid4, powerDbm);
+    DEBUG_PRINT("Raw WSPR symbols: ");
+    for (int i = 0; i < WSPR_SYMBOL_COUNT; i++) {
+        DEBUG_PRINT(String(tx_buffer[i]) + " ");
+    }
+    DEBUG_PRINTLN();
+
+    tx(cd.freq);
+}
+
+void Telemetry::sendExtended(char loc[], float pressure, uint8_t satellites) {
+    DEBUG_PRINTLN("Sending Extended Telemetry frame...");
+    DEBUG_PRINTLN(loc);
+
+    WsprMessageTelemetryExtendedUserDefined<6> msg;
+    msg.DefineField("Pressure", 0, 110000, 100);
+    msg.DefineField("Loc", 0, 99, 1);
+    msg.DefineField("Uptime", 0, 1000, 10);
+    msg.DefineField("Sats", 0, 40, 1);
+
+    // Convert last 2 characters (positions 6 and 7) to integer
+    // For 8-character grid: AA##aa##, positions 6-7 are the last ##
+    int loc_int = (loc[6] - '0') * 10 + (loc[7] - '0');
+
+    // set values
+    msg.Set("Pressure", pressure * 100); // Convert to Pa
+    msg.Set("Loc", loc_int); // Use the converted integer
+    msg.Set("Uptime", (millis() / 1000) / 60);
+    msg.Set("Sats", satellites);
+
+    // encode
+    msg.SetId13(cd.id13);
+    msg.SetHdrSlot(2); // +4 minutes
+    msg.Encode();
+
+    // Extract the WSPR Type1 Message fields from the encoder
+    const char *callsign = msg.GetCallsign();
+    const char *grid4    = msg.GetGrid4();
+    uint8_t     powerDbm = msg.GetPowerDbm();
+
+    DEBUG_PRINTLN("Callsign: " + String(callsign));
+    DEBUG_PRINTLN("Grid4: " + String(grid4));
+    DEBUG_PRINTLN("Power (dBm): " + String(powerDbm));
+
+    // Add debug output for the raw encoded buffer
+    set_tx_buffer(callsign, grid4, powerDbm);
+    DEBUG_PRINT("Raw WSPR symbols: ");
+    for (int i = 0; i < WSPR_SYMBOL_COUNT; i++) {
+        DEBUG_PRINT(String(tx_buffer[i]) + " ");
+    }
+    DEBUG_PRINTLN();
+
     tx(cd.freq);
 }
 
@@ -135,6 +187,8 @@ void Telemetry::timerCallback()
         instance->si5351.output_enable(SI5351_CLK0, 0);
         instance->timer->pause();
         instance->transmitting = false;
+        // Turn GPS back on
+        digitalWrite(GPS_ON, HIGH);
         DEBUG_PRINTLN("DONE!");
     } else {
         // Set next symbol frequency

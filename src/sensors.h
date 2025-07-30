@@ -5,6 +5,9 @@
 #include "console.h"
 #include "stm32yyxx_ll_adc.h"
 #include "Arduino.h"
+#include <Wire.h>
+#include <Adafruit_LPS2X.h>
+#include <Adafruit_Sensor.h>
 
 class Sensors
 {
@@ -18,14 +21,24 @@ public:
     {
         return voltage;
     }
+    float getIntTemperature() const
+    {
+        return int_temperature;
+    }
     float getTemperature() const
     {
         return temperature;
     }
+    float getPressure() const
+    {
+        return pressure;
+    }
 
 private:
     float voltage; // Voltage read from ADC
-    float temperature; // Temperature read from internal sensor
+    float int_temperature; // Temperature read from internal sensor
+    float temperature; // Temperature read from LPS22 sensor
+    float pressure; // Pressure read from LPS22 sensor
 
     static constexpr uint32_t TS_CAL1_ADDR = 0x1FFF75A8; // Temp calibration @ 30°C
     static constexpr uint32_t TS_CAL2_ADDR = 0x1FFF75CA; // Temp calibration @ 130°C

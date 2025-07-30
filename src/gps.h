@@ -61,17 +61,21 @@ public:
     {
         return gps.time.second();
     }
-    void get_m6(char *loc) {
+    void get_m6(char *loc)
+    {
         strcpy(loc, locator);
-        //strcpy(loc, "IO90WX");
+        // strcpy(loc, "IO90WX");
     }
-    uint8_t getAge() {
+    uint8_t getAge()
+    {
         return gps.time.age();
     }
-    void setUpdated(bool value) {
+    void setUpdated(bool value)
+    {
         updated = value;
     }
-    bool isUpdated() const {
+    bool isUpdated() const
+    {
         return updated;
     }
 
@@ -79,13 +83,13 @@ private:
     TinyGPSPlus gps;
 
     char letterize(int x);
-    void update_mh_6(double lat, double lon);
+    void update_mh_8(double lat, double lon);
 
     // Cached data
     double latitude;
     double longitude;
     double altitude;
-    char locator[6];
+    char locator[8];
     uint8_t satellites;
     int speed;
     uint32_t time;

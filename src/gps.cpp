@@ -56,14 +56,14 @@ void GPS::update()
     if (gps.speed.isUpdated() && gps.satellites.isUpdated()) // ensures that GGA and RMC sentences have been received
     {
         // update the locator
-        update_mh_6(gps.location.lat(), gps.location.lng());
+        update_mh_8(gps.location.lat(), gps.location.lng());
 
         updated = true; // Mark as updated whenever we receive new GPS data
     }
 }
 
 // The following were taken from https://github.com/knormoyle/rp2040_si5351_wspr/blob/main/tracker/mh_functions.cpp
-
+// and adapted for 8 character Maidenhead locator format
 char GPS::letterize(int x)
 {
     // KC3LBR 07/23/24 alternate/redundant fix
@@ -78,21 +78,21 @@ char GPS::letterize(int x)
 }
 
 // call with double for more precision
-// force size to be 6
-// always return char[7] (null term)
+// force size to be 8
+// always return char[9] (null term)
 // will always return upper case
 
 // tinyGPS gives you doubles for lat long, so use doubles here
 // only place we return a pointer to a static char array ! (locator)
-void GPS::update_mh_6(double lat, double lon)
+void GPS::update_mh_8(double lat, double lon)
 {
-    double LON_F[] = {20, 2.0, 0.0833330, 0.008333, 0.0003472083333333333};
-    double LAT_F[] = {10, 1.0, 0.0416665, 0.004166, 0.0001735833333333333};
+    double LON_F[] = {20, 2.0, 0.0833330, 0.008333, 0.0003472083333333333, 0.000014467};
+    double LAT_F[] = {10, 1.0, 0.0416665, 0.004166, 0.0001735833333333333, 0.0000072333};
     int i;
 
     lon += 180;
     lat += 90;
-    int size = 6;
+    int size = 8;
     for (i = 0; i < size / 2; i++)
     {
         if (i % 2 == 1)
@@ -108,5 +108,5 @@ void GPS::update_mh_6(double lat, double lon)
         lon = fmod(lon, LON_F[i]);
         lat = fmod(lat, LAT_F[i]);
     }
-    locator[6] = 0; // null term
+    locator[8] = 0; // null term
 }
