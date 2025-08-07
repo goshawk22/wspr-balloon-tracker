@@ -10,29 +10,41 @@ Telemetry::Telemetry(Si5351& si5351) : si5351(si5351), transmitting(false), curr
 
 void Telemetry::init()
 {
-    DEBUG_PRINTLN("Starting Telemetry...");
+    DEBUG_PRINTLN("[Telemetry] Starting Telemetry...");
+    DEBUG_PRINTLN("[Telemetry] Powering on Si5351...");
+    pinMode(VFO_VCC_ON, OUTPUT);
+    digitalWrite(VFO_VCC_ON, LOW); // Enable VFO power
+    delay(1000);
+    DEBUG_PRINTLN("[Telemetry] SI5351 Powered on...");
+    // delay(500);
     // Set up si5351
     Wire.setSDA(PB7);
     Wire.setSCL(PB6);
-    Wire.begin();
-    pinMode(VFO_VCC_ON, INPUT_PULLDOWN);
-    delay(500);
+    // Wire.begin();
+    delay(1000); // Allow Si5351 to power up
     si5351.init(SI5351_CRYSTAL_LOAD_0PF, 26000000UL, 0);
     // Set CLK0 output
     si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);
     si5351.output_enable(SI5351_CLK0, 0);
 
+    DEBUG_PRINTLN("[Telemetry] SI5351 Initialized...");
+    delay(1000);
     // Initialize hardware timer
     timer = new HardwareTimer(TIM1); // Use TIM1 or another available timer
     timer->setOverflow(WSPR_DELAY, MICROSEC_FORMAT); // Set period to WSPR_DELAY us
     timer->attachInterrupt(timerCallback);
 
+    DEBUG_PRINTLN("[Telemetry] Hardware Timer Initialized...");
+    delay(1000);
     // Get channel details
     cd = WsprChannelMap::GetChannelDetails(BAND, CHANNEL);
+    DEBUG_PRINTLN("[Telemetry] Channel Configured");
+    delay(1000);
+    DEBUG_PRINTLN("[Telemetry] Telemetry Initialized");
 }
 
 void Telemetry::sendType1(char call[], char loc[], uint8_t dbm) {
-    DEBUG_PRINTLN("Sending Type 1 WSPR frame...");
+    DEBUG_PRINTLN("[Telemetry] Sending Type 1 WSPR frame...");
     DEBUG_PRINTLN(call);
     DEBUG_PRINTLN(loc);
     // Ensure loc is only 6 characters (truncate if longer)
@@ -45,7 +57,7 @@ void Telemetry::sendType1(char call[], char loc[], uint8_t dbm) {
 }
 
 void Telemetry::sendBasic(char loc[], int32_t altitudeMeters, int8_t temperatureCelsius, double voltageVolts, uint8_t speedKnots) {
-    DEBUG_PRINTLN("Sending Basic Telemetry frame...");
+    DEBUG_PRINTLN("[Telemetry] Sending Basic Telemetry frame...");
     DEBUG_PRINTLN(loc);
 
     // Create the message encoder
@@ -55,7 +67,6 @@ void Telemetry::sendBasic(char loc[], int32_t altitudeMeters, int8_t temperature
     id56[1] = loc[5];
     id56[2] = '\0';
     DEBUG_PRINTLN(id56);
-    DEBUG_PRINTLN("String Length: " + String(strlen(id56)));
 
     // Set the telemetry fields
     msg.SetGrid56(id56);
@@ -101,17 +112,12 @@ void Telemetry::sendBasic(char loc[], int32_t altitudeMeters, int8_t temperature
 
     // Add debug output for the raw encoded buffer
     set_tx_buffer(callsign, grid4, powerDbm);
-    DEBUG_PRINT("Raw WSPR symbols: ");
-    for (int i = 0; i < WSPR_SYMBOL_COUNT; i++) {
-        DEBUG_PRINT(String(tx_buffer[i]) + " ");
-    }
-    DEBUG_PRINTLN();
 
     tx(cd.freq);
 }
 
 void Telemetry::sendExtended(char loc[], float pressure, uint8_t satellites) {
-    DEBUG_PRINTLN("Sending Extended Telemetry frame...");
+    DEBUG_PRINTLN("[Telemetry] Sending Extended Telemetry frame...");
     DEBUG_PRINTLN(loc);
 
     WsprMessageTelemetryExtendedUserDefined<6> msg;
@@ -146,11 +152,6 @@ void Telemetry::sendExtended(char loc[], float pressure, uint8_t satellites) {
 
     // Add debug output for the raw encoded buffer
     set_tx_buffer(callsign, grid4, powerDbm);
-    DEBUG_PRINT("Raw WSPR symbols: ");
-    for (int i = 0; i < WSPR_SYMBOL_COUNT; i++) {
-        DEBUG_PRINT(String(tx_buffer[i]) + " ");
-    }
-    DEBUG_PRINTLN();
 
     sentExtended = true; // Set flag to indicate extended telemetry has been sent
 
@@ -161,11 +162,11 @@ void Telemetry::tx(unsigned long freq)
 {
     if (transmitting) {
         // We shouldn't get here anyway but just in case
-        DEBUG_PRINTLN("Already transmitting, skipping...");
+        DEBUG_PRINTLN("[Telemetry] Already transmitting, skipping...");
         return;
     }
-    
-    DEBUG_PRINTLN("Starting WSPR TX!");
+
+    DEBUG_PRINTLN("[Telemetry] Starting WSPR TX!");
 
     // Initialize transmission state
     transmitting = true;
@@ -194,7 +195,7 @@ void Telemetry::timerCallback()
         instance->si5351.output_enable(SI5351_CLK0, 0);
         instance->timer->pause();
         instance->transmitting = false;
-        DEBUG_PRINTLN("DONE!");
+        DEBUG_PRINTLN("[Telemetry] DONE!");
     } else {
         // Set next symbol frequency
         instance->si5351.set_freq(

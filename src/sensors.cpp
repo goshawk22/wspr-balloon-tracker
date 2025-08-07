@@ -40,6 +40,18 @@ void Sensors::update()
     DEBUG_PRINTLN(pressure);
 }
 
+float Sensors::get_v()
+{
+    float sum = 0;
+    for (int i = 0; i < 10; i++) {
+        sum += readVoltage(readVref(), ADC_PIN);
+        delay(50); // Small delay to allow ADC to stabilize
+    }
+    float v_adc = sum / 10.0; // Average of 10 readings
+    float v = v_adc * VOLTAGE_DIVIDER_MULTIPLIER / 1000.0; // Convert to volts
+    return v;
+}
+
 uint32_t Sensors::readVref()
 {
     uint32_t Vref = 3000;

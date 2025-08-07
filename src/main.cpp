@@ -32,8 +32,39 @@ void setup()
     delay(1000);
     DEBUG_PRINTLN("Starting...");
     IWatchdog.reload();
+
+    analogReadResolution(12); // Set ADC resolution to 12 bits
+    float v_adc = sensors.get_v();
+
+    while (v_adc < 3.3) {
+        DEBUG_PRINTLN("Voltage is too low, waiting...");
+        delay(1000);
+        v_adc = sensors.get_v();
+        IWatchdog.reload();
+    }
+
     gps.begin();
+
+    v_adc = sensors.get_v();
+
+    while (v_adc < 3.3) {
+        DEBUG_PRINTLN("Voltage is too low, waiting...");
+        delay(1000);
+        v_adc = sensors.get_v();
+        IWatchdog.reload();
+    }
+
     telemetry.init();
+
+    v_adc = sensors.get_v();
+
+    while (v_adc < 3.3) {
+        DEBUG_PRINTLN("Voltage is too low, waiting...");
+        delay(1000);
+        v_adc = sensors.get_v();
+        IWatchdog.reload();
+    }
+
     sensors.begin();
     IWatchdog.reload();
 }

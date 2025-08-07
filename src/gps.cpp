@@ -9,13 +9,12 @@ GPS::GPS()
 
 void GPS::begin()
 {
-    // pinMode(GPS_VCC_ON, INPUT_PULLDOWN);
-    // digitalWrite(GPS_VCC_ON, LOW);
+    DEBUG_PRINTLN("[GPS] Powering on...");
+    pinMode(GPS_VCC_ON, OUTPUT);
+    digitalWrite(GPS_VCC_ON, LOW);
+    delay(500); // Wait for GPS to stabilize
     pinMode(GPS_ON, OUTPUT);
     digitalWrite(GPS_ON, HIGH);
-    delay(1000); // Wait for GPS to power up
-    DEBUG_PRINTLN("[GPS] Powering on...");
-
     delay(500); // Allow GPS to stabilize
 
     // Initialize the GPS serial port
@@ -23,7 +22,7 @@ void GPS::begin()
     SerialLP1.setRx(GPS_SERIAL_RX);
     SerialLP1.setTx(GPS_SERIAL_TX);
     SerialLP1.begin(GPS_SERIAL_BAUD); // Set the baud rate for GPS
-    delay(1000); // Wait for GPS to initialize
+    delay(500); // Wait for GPS to initialize
 
     DEBUG_PRINTLN("[GPS] Setting up PPS interrupt...");
     setupPPS(); // Setup PPS pin and interrupt
@@ -59,7 +58,7 @@ void GPS::update()
     {
         // DEBUG_PRINTLN("GPS Serial Data Available");
         char c = SerialLP1.read();
-        //DEBUG_PRINT(c);
+        // DEBUG_PRINT(c);
         // Serial.print(c);
         gps.encode(c);
     }
@@ -190,7 +189,7 @@ void GPS::syncRTC() {
         rtc.setSubSeconds(0); // Set sub-seconds to 0 for simplicity
         
         last_sync_time = millis(); // Reset sync timer
-        DEBUG_PRINTLN("RTC synchronized with GPS time");
+        DEBUG_PRINTLN("[GPS] RTC synchronized with GPS time");
     }
     rtc_synced = true; // Set flag to indicate RTC has been synced
 }

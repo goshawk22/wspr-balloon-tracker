@@ -33,6 +33,7 @@ public:
     {
         return pressure;
     }
+    float get_v();
 
 private:
     float voltage; // Voltage read from ADC
