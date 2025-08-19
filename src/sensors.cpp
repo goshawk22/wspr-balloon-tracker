@@ -14,6 +14,12 @@ void Sensors::begin()
     lps.begin_I2C(0x5C, &WireSensors); // Initialize the LPS22 sensor over I2C
 
     lps.setDataRate(LPS22_RATE_1_HZ);
+
+    DEBUG_PRINTLN("[Sensors] Sensors initialized");
+    sensors_event_t temp_event;
+    sensors_event_t pressure_event;
+    lps.getEvent(&pressure_event, &temp_event); // get pressure
+    DEBUG_PRINTF("[Sensors] Pressure: %.2f hPa \n\r", pressure_event.pressure);
 }
 
 void Sensors::update()

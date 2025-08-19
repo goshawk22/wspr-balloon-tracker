@@ -19,10 +19,12 @@
 #define WSPR_DELAY 683000          // Delay value for WSPR in us
 #define WSPR_DEFAULT_FREQ 14097200UL
 
-#define BAND "20m"
-#define CHANNEL 195
+#define BAND "10m"
+#define CHANNEL 226
 
 #define CALLSIGN "M7GAQ"
 
 #define ADC_PIN PB1
 #define VOLTAGE_DIVIDER_MULTIPLIER 2.0
+
+#define THRESHOLD_VOLTAGE 2.2 // Minimum voltage to start

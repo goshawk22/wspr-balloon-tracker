@@ -72,7 +72,7 @@ void Telemetry::sendBasic(char loc[], int32_t altitudeMeters, int8_t temperature
     msg.SetGrid56(id56);
     msg.SetAltitudeMeters(altitudeMeters);
     msg.SetTemperatureCelsius(temperatureCelsius);
-    msg.SetVoltageVolts(voltageVolts);
+    msg.SetVoltageVolts(voltageVolts + 2.0); // offset so it fits the range
     msg.SetSpeedKnots(speedKnots);
     msg.SetGpsIsValid(true); // Assume GPS is valid as we use it to tell time
 

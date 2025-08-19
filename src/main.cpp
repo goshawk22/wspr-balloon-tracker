@@ -36,8 +36,11 @@ void setup()
     analogReadResolution(12); // Set ADC resolution to 12 bits
     float v_adc = sensors.get_v();
 
-    while (v_adc < 3.3) {
+    DEBUG_PRINTF("Current voltage: %.2f V\n", v_adc);
+
+    while (v_adc < THRESHOLD_VOLTAGE) {
         DEBUG_PRINTLN("Voltage is too low, waiting...");
+        DEBUG_PRINTF("Current voltage: %.2f V\n", v_adc);
         delay(1000);
         v_adc = sensors.get_v();
         IWatchdog.reload();
@@ -47,8 +50,11 @@ void setup()
 
     v_adc = sensors.get_v();
 
-    while (v_adc < 3.3) {
+    DEBUG_PRINTF("Current voltage: %.2f V", v_adc);
+
+    while (v_adc < THRESHOLD_VOLTAGE) {
         DEBUG_PRINTLN("Voltage is too low, waiting...");
+        DEBUG_PRINTF("Current voltage: %.2f V\n", v_adc);
         delay(1000);
         v_adc = sensors.get_v();
         IWatchdog.reload();
@@ -58,8 +64,12 @@ void setup()
 
     v_adc = sensors.get_v();
 
-    while (v_adc < 3.3) {
+    DEBUG_PRINTF("Current voltage: %.2f V\n", v_adc);
+
+
+    while (v_adc < THRESHOLD_VOLTAGE) {
         DEBUG_PRINTLN("Voltage is too low, waiting...");
+        DEBUG_PRINTF("Current voltage: %.2f V\n", v_adc);
         delay(1000);
         v_adc = sensors.get_v();
         IWatchdog.reload();
