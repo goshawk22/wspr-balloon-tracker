@@ -3,6 +3,7 @@
 #include "config.h"
 #include "console.h"
 #include "sensors.h"
+#include "led.h"
 #include <IWatchdog.h>
 
 GPS gps;
@@ -13,10 +14,8 @@ Sensors sensors;
 char call[] = CALLSIGN;
 
 uint32_t lastPrintTime = 0;
-uint8_t lastMinute = 61; // Initialize to a value that won't match the first minute check
-char tx_loc[8]; // locator at start of type 1 frame, needs to stay the same for all 3 frames.
 
-bool shouldTransmit = true;
+char tx_loc[11]; // locator at start of type 1 frame, needs to stay the same for all 3 frames.
 
 STM32RTC &rtc = STM32RTC::getInstance(); // Use STM32RTC for accurate timekeeping
 
@@ -33,91 +32,66 @@ void setup()
     DEBUG_PRINTLN("Starting...");
     IWatchdog.reload();
 
-    analogReadResolution(12); // Set ADC resolution to 12 bits
-    float v_adc = sensors.get_v();
-
-    DEBUG_PRINTF("Current voltage: %.2f V\n", v_adc);
-
-    while (v_adc < THRESHOLD_VOLTAGE) {
-        DEBUG_PRINTLN("Voltage is too low, waiting...");
-        DEBUG_PRINTF("Current voltage: %.2f V\n", v_adc);
-        delay(1000);
-        v_adc = sensors.get_v();
-        IWatchdog.reload();
-    }
-
+    setupLED();
     gps.begin();
-
-    v_adc = sensors.get_v();
-
-    DEBUG_PRINTF("Current voltage: %.2f V", v_adc);
-
-    while (v_adc < THRESHOLD_VOLTAGE) {
-        DEBUG_PRINTLN("Voltage is too low, waiting...");
-        DEBUG_PRINTF("Current voltage: %.2f V\n", v_adc);
-        delay(1000);
-        v_adc = sensors.get_v();
-        IWatchdog.reload();
-    }
-
+    delay(1000);
     telemetry.init();
-
-    v_adc = sensors.get_v();
-
-    DEBUG_PRINTF("Current voltage: %.2f V\n", v_adc);
-
-
-    while (v_adc < THRESHOLD_VOLTAGE) {
-        DEBUG_PRINTLN("Voltage is too low, waiting...");
-        DEBUG_PRINTF("Current voltage: %.2f V\n", v_adc);
-        delay(1000);
-        v_adc = sensors.get_v();
-        IWatchdog.reload();
-    }
-
     sensors.begin();
     IWatchdog.reload();
+
+
+    // System started
+    blink(1, 1000);
+
+#ifdef DEBUG
+    telemetry.sendType1(call, tx_loc, 13);
+#endif
 }
 
 void loop()
 {
     IWatchdog.reload();
     gps.update();
-
     if (telemetry.isExtendedSent() && !telemetry.isTransmitting()) {
         gps.enable(); // Re-enable GPS if extended telemetry was sent
         telemetry.setExtendedSent(false); // Reset the flag
-
     }
 
-    if (shouldTransmit &&(rtc.getMinutes() % 10 == telemetry.getMinute()) && (rtc.getSeconds() == 1) && !telemetry.isTransmitting() && gps.isRTCSynced())
-    {
-        //lastMinute = gps.getMinute(); // Update last minute to prevent duplicate sends
-        
-        // Get sensor measurements at the same time as GPS fix so all the data matches
-        sensors.update();
+    // Common preconditions for any transmission
+    const bool secIsOne = (rtc.getSeconds() == 1);
+    const bool notTransmitting = !telemetry.isTransmitting();
+    const bool rtcSynced = gps.isRTCSynced();
 
-        // Turn off the GPS module to save power
-        //digitalWrite(GPS_ON, LOW);
-        gps.get_m8(tx_loc);
-        gps.disable(); // Disable GPS to save power during transmission
-        telemetry.sendType1(call, tx_loc, 13);
-    } else if (shouldTransmit && (rtc.getMinutes() % 10 == (telemetry.getMinute() + 2) % 10) && (rtc.getSeconds() == 1) && !telemetry.isTransmitting() && gps.isRTCSynced())
-    {
-        //lastMinute = gps.getMinute(); // Update last minute to prevent duplicate sends
-        
-        // Turn off the GPS module to save power
-        //digitalWrite(GPS_ON, LOW);
-        telemetry.sendBasic(tx_loc, gps.getAltitude(), sensors.getTemperature(), sensors.getVoltage(), gps.getSpeed());
-    } else if (shouldTransmit && (rtc.getMinutes() % 10 == (telemetry.getMinute() + 4) % 10) && (rtc.getSeconds() == 1) && !telemetry.isTransmitting() && gps.isRTCSynced())
-    {
-        //lastMinute = gps.getMinute(); // Update last minute to prevent duplicate sends
-        
-        // Turn off the GPS module to save power
-        //digitalWrite(GPS_ON, LOW);
-        telemetry.sendExtended(tx_loc, sensors.getPressure(), gps.getSatellites());
-    }
-    else if ((lastPrintTime == 0 || millis() - lastPrintTime > 10000) && !telemetry.isTransmitting())
+    if (secIsOne && notTransmitting && rtcSynced) {
+        // Compute the difference between the current 10-minute slot and the telemetry base minute
+        int minuteMod = rtc.getMinutes() % 10;
+        int baseMinute = telemetry.getMinute();
+        int slotOffset = (minuteMod - baseMinute + 10) % 10; // 0..9
+
+        switch (slotOffset) {
+            case 0:
+                // Type 1 packet: take fresh sensor measurements and a GPS fix
+                sensors.update();
+                gps.get_m10(tx_loc);
+                gps.disable(); // Disable GPS to save power during transmission
+                telemetry.sendType1(call, tx_loc, 13);
+                break;
+
+            case 2:
+                // Slot 1
+                telemetry.sendBasic(tx_loc, gps.getAltitude(), sensors.getIntTemperature(), sensors.getVoltage(), gps.getSpeed());
+                break;
+
+            case 4:
+                // Slot 2
+                telemetry.sendExtended(tx_loc, gps.getSatellites(), gps.getFixTime());
+                break;
+
+            default:
+                // Not a transmit slot; fall through to other periodic work
+                break;
+        }
+    } else if ((lastPrintTime == 0 || millis() - lastPrintTime > 10000) && !telemetry.isTransmitting())
     {
         lastPrintTime = millis();
         DEBUG_PRINTLN("GPS Data:");

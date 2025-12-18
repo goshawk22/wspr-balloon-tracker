@@ -10,6 +10,7 @@
 #include <Wire.h>
 #include "config.h"
 #include "console.h"
+#include "led.h"
 
 class Telemetry
 {
@@ -18,7 +19,9 @@ public:
     void init();
     void sendType1(char call[], char loc[], uint8_t dbm);
     void sendBasic(char loc[], int32_t altitudeMeters, int8_t temperatureCelsius, double voltageVolts, uint8_t speedKnots);
-    void sendExtended(char loc[], float pressure, uint8_t satellites);
+    void sendExtended(char loc[], uint8_t satellites, uint32_t fix_time);
+    void sendSlot1_new(char loc[], double voltageVolts);
+    void sendSlot2_new(int32_t altitudeMeters, uint8_t speedKPH, int8_t temperatureCelsius, uint8_t satellites);
     uint32_t getFrequency() const
     {
         return cd.freq;

@@ -15,6 +15,7 @@ public:
     Sensors();
     void begin();
     void update();
+    void setSensorVCC(bool enabled);
 
     // Accessors
     float getVoltage() const
@@ -33,7 +34,6 @@ public:
     {
         return pressure;
     }
-    float get_v();
 
 private:
     float voltage; // Voltage read from ADC

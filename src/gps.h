@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "console.h"
+#include "led.h"
 #include <TinyGPS++.h>
 #include <math.h>
 #include <stdio.h>
@@ -44,6 +45,10 @@ public:
     {
         return gps.speed.knots();
     }
+    double getSpeedKPH()
+    {
+        return gps.speed.kmph();
+    }
     double getAltitude()
     {
         return gps.altitude.meters();
@@ -68,7 +73,7 @@ public:
     {
         return gps.time.second();
     }
-    void get_m8(char *loc)
+    void get_m10(char *loc)
     {
         strcpy(loc, locator);
         // strcpy(loc, "IO90WX");
@@ -89,18 +94,23 @@ public:
     {
         return rtc_synced;
     }
+    uint32_t getFixTime() const
+    {
+        return fix_time;
+    }
 
 private:
     TinyGPSPlus gps;
 
     char letterize(int x);
-    void update_mh_8(double lat, double lon);
+    void update_mh_10(double lat, double lon);
 
     // Cached data
     double latitude;
     double longitude;
     double altitude;
-    char locator[8];
+    // 10-character Maidenhead locator plus null terminator
+    char locator[11];
     uint8_t satellites;
     int speed;
     uint32_t time;
@@ -110,6 +120,10 @@ private:
     uint8_t age;
     bool updated;
     bool enabled = true;
+
+    // Fix timing
+    uint32_t fix_start_time = 0;
+    uint32_t fix_time = 0;
 
     // PPS interrupt handling
     static GPS *instance;

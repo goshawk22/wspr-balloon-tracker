@@ -17,6 +17,8 @@ void GPS::begin()
     digitalWrite(GPS_ON, HIGH);
     delay(500); // Allow GPS to stabilize
 
+    fix_start_time = millis();
+
     // Initialize the GPS serial port
     // clock must be in the range [3x baud rate..4096 x baud rate], so max clock is 9600 * 4096 = 39321600
     SerialLP1.setRx(GPS_SERIAL_RX);
@@ -54,26 +56,34 @@ void GPS::begin()
 void GPS::update()
 {
     // Read data from the GPS serial port
-    while (SerialLP1.available())
-    {
-        // DEBUG_PRINTLN("GPS Serial Data Available");
-        char c = SerialLP1.read();
-        // DEBUG_PRINT(c);
-        // Serial.print(c);
-        gps.encode(c);
-    }
-    // Update cached data if a valid fix is available
-    if (gps.speed.isUpdated() && gps.satellites.isUpdated()) // ensures that GGA and RMC sentences have been received
-    {
-        // update the locator
-        update_mh_8(gps.location.lat(), gps.location.lng());
+    if (enabled) {
+        while (SerialLP1.available())
+        {
+            // DEBUG_PRINTLN("GPS Serial Data Available");
+            char c = SerialLP1.read();
+            //DEBUG_PRINT(c);
+            // Serial.print(c);
+            gps.encode(c);
+        }
+        // Update cached data if a valid fix is available
+        if (gps.speed.isUpdated() && gps.satellites.isUpdated()) // ensures that GGA and RMC sentences have been received
+        {
+            // update the locator (now 10-figure Maidenhead)
+            update_mh_10(gps.location.lat(), gps.location.lng());
 
-        updated = true; // Mark as updated whenever we receive new GPS data
+            // Update fix time
+            if (!updated) {
+                fix_time = millis() - fix_start_time;
+                blink(2, 250); // we got a fix
+            }
+
+            updated = true; // Mark as updated whenever we receive new GPS data
+        }
     }
 }
 
 // The following were taken from https://github.com/knormoyle/rp2040_si5351_wspr/blob/main/tracker/mh_functions.cpp
-// and adapted for 8 character Maidenhead locator format
+// and adapted for 10 character Maidenhead locator format
 char GPS::letterize(int x)
 {
     // KC3LBR 07/23/24 alternate/redundant fix
@@ -94,31 +104,37 @@ char GPS::letterize(int x)
 
 // tinyGPS gives you doubles for lat long, so use doubles here
 // only place we return a pointer to a static char array ! (locator)
-void GPS::update_mh_8(double lat, double lon)
+// AA00BB1122
+void GPS::update_mh_10(double lat, double lon)
 {
-    double LON_F[] = {20, 2.0, 0.0833330, 0.008333, 0.0003472083333333333, 0.000014467};
-    double LAT_F[] = {10, 1.0, 0.0416665, 0.004166, 0.0001735833333333333, 0.0000072333};
-    int i;
+    // Factors per Maidenhead precision step
+    // Index 0: field (letters), 1: square (digits), 2: subsquare (letters),
+    // 3: extended square (digits), 4: extended subsquare (digits for 9th/10th)
+    double LON_F[] = {20, 2.0, 0.0833330, 0.008333, 0.0008333};
+    double LAT_F[] = {10, 1.0, 0.0416665, 0.004166, 0.0004166};
 
     lon += 180;
     lat += 90;
-    int size = 8;
-    for (i = 0; i < size / 2; i++)
+
+    // Produce 10-character locator (positions 9 and 10 are digits 0-9)
+    const int size = 10;
+    for (int i = 0; i < size / 2; i++)
     {
-        if (i % 2 == 1)
+        bool useDigits = (i % 2 == 1) || (i == 4); // digits for 3rd, 4th and 5th pairs
+        if (useDigits)
         {
-            locator[i * 2] = (char)(lon / LON_F[i] + '0');
-            locator[i * 2 + 1] = (char)(lat / LAT_F[i] + '0');
+            locator[i * 2]     = (char)((int)(lon / LON_F[i]) + '0');
+            locator[i * 2 + 1] = (char)((int)(lat / LAT_F[i]) + '0');
         }
         else
         {
-            locator[i * 2] = letterize((int)(lon / LON_F[i]));
+            locator[i * 2]     = letterize((int)(lon / LON_F[i]));
             locator[i * 2 + 1] = letterize((int)(lat / LAT_F[i]));
         }
         lon = fmod(lon, LON_F[i]);
         lat = fmod(lat, LAT_F[i]);
     }
-    locator[8] = 0; // null term
+    locator[size] = 0; // null terminator
 }
 
 void GPS::setupPPS()
@@ -161,6 +177,7 @@ void GPS::ppsInterrupt()
     if (instance)
     {
         instance->syncRTC();
+        // GPS time here is still old, i.e. we haven't got the new data over serial yet.
         DEBUG_PRINTF("GPS Time: %02d:%02d:%02d.%02d\n",
                      instance->gps.time.hour(), instance->gps.time.minute(),
                      instance->gps.time.second(), instance->gps.time.centisecond());
@@ -173,7 +190,7 @@ void GPS::ppsInterrupt()
 }
 
 void GPS::syncRTC() {
-    if (millis() - last_sync_time > 30000 && gps.time.isValid() && gps.date.isValid()) {
+    if ((millis() - last_sync_time > 30000 || !rtc_synced) && gps.time.isValid() && gps.date.isValid()) {
         // Get GPS time
         int year = gps.date.year();
         int month = gps.date.month();
@@ -181,6 +198,16 @@ void GPS::syncRTC() {
         int hour = gps.time.hour();
         int minute = gps.time.minute();
         int second = gps.time.second() + 1;
+
+        // Normalize time to avoid rollover
+        // We don't really care about hours, days etc
+        if (second >= 60) {
+            second -= 60;
+            minute += 1;
+        }
+        if (minute >= 60) {
+            minute -= 60;
+        }
         
         // Set STM32 RTC
         STM32RTC& rtc = STM32RTC::getInstance();
@@ -190,8 +217,9 @@ void GPS::syncRTC() {
         
         last_sync_time = millis(); // Reset sync timer
         DEBUG_PRINTLN("[GPS] RTC synchronized with GPS time");
+
+        rtc_synced = true; // Set flag to indicate RTC has been synced
     }
-    rtc_synced = true; // Set flag to indicate RTC has been synced
 }
 
 void GPS::enable()
@@ -202,6 +230,8 @@ void GPS::enable()
     }
     digitalWrite(GPS_ON, HIGH);
     delay(1000); // Allow GPS to power up
+    fix_start_time = millis();
+    updated = false; // Data is now stale
     pps_timer->resume(); // Resume PPS timer
     enabled = true;
     DEBUG_PRINTLN("[GPS] Enabled.");
