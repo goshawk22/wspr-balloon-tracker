@@ -39,7 +39,7 @@ void Sensors::update()
 {
 
     float v_adc = readVoltage(readVref(), ADC_PIN);
-    voltage = v_adc * VOLTAGE_DIVIDER_MULTIPLIER / 1000.0; // Convert to volts
+    voltage = v_adc * ADC_VOLTAGE_DIVIDER_MULTIPLIER / 1000.0; // Convert to volts
 
     int_temperature = __LL_ADC_CALC_TEMPERATURE(readVref(), analogRead(ATEMP), LL_ADC_RESOLUTION_12B);
 #ifdef HAS_PRESSURE_SENSOR

@@ -20,6 +20,7 @@
 
 // misc definitions
 #define ADC_PIN PA0
+#define ADC_VOLTAGE_DIVIDER_MULTIPLIER 1.0
 #define LED PA1
 #define CHG_EN PA8
 
@@ -34,6 +35,6 @@
 #define CALLSIGN "M7GAQ"
 
 #define VIN_ADC_PIN PB1
-#define VOLTAGE_DIVIDER_MULTIPLIER 2.0
+#define VIN_ADC_VOLTAGE_DIVIDER_MULTIPLIER 2.0
 
 //#define HAS_PRESSURE_SENSOR
