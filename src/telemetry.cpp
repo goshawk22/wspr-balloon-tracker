@@ -125,7 +125,7 @@ void Telemetry::sendExtended(char loc[], uint8_t satellites, uint32_t fix_time) 
     msg.DefineField("Loc", 0, 99, 1);
     msg.DefineField("Loc2", 0, 99, 1);
     msg.DefineField("Uptime", 0, 120, 10);
-    msg.DefineField("Fixtime", 0, 120, 5);
+    msg.DefineField("Fixtime", 0, 24, 1);
     msg.DefineField("Sats", 0, 40, 1);
 
     // Convert last 2 characters (positions 6 and 7) to integer
@@ -134,11 +134,14 @@ void Telemetry::sendExtended(char loc[], uint8_t satellites, uint32_t fix_time) 
 
     int loc2_int = (loc[8] - '0') * 10 + (loc[9] - '0');
 
+    // nonlinear encodings for msg
+    int enc_fixtime = constrain((floor((1/(50+(50*(pow(2.71, ((-0.4*(fix_time/1000))+3)))))) + (fix_time/40000000))), 0, 24);
+
     // set values
     msg.Set("Loc", loc_int);
     msg.Set("Loc2", loc2_int);
     msg.Set("Uptime", (millis() / 1000) / 60);
-    msg.Set("Fixtime", (fix_time / 1000));
+    msg.Set("Fixtime", (enc_fixtime));
     msg.Set("Sats", satellites);
 
     // encode
