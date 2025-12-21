@@ -23,11 +23,54 @@ A WSPR based picoballoon tracker based around the STM32G071GB.
 
 ## Hardware Design
 
+## V2
+
 ### 3D Visualization
-![3D PCB Render](hardware/3d.png)
+![3D PCB Render](hardware/v2/3d.png)
 
 ### Schematic
-![Schematic](hardware/SCH_Schematic1_1-P1_2025-08-19.png)
+![Schematic](hardware/v2/SCH_Schematic1_1-P1_2025-12-21.png)
+
+### Changes from given schematic
+
+ - Reset IC removed from boost module
+
+### Weight
+When using the 4 cell panel configuration, it weighed 6.1g. After the addition of antenna wires the final payload should weigh less than 8g.
+![3D PCB Render](hardware/v2/solar_pcb.png)
+![Scales](hardware/v2/scales.jpg)
+
+
+### Pin Configuration
+
+#### GPS Interface
+- **GPS_SERIAL_TX**: PA2 (LPUART1 TX to GPS RX)
+- **GPS_SERIAL_RX**: PA3 (LPUART1 RX from GPS TX)  
+- **GPS_VCC_ON**: PA7 (GPS power control)
+- **GPS_ON**: PA5 (GPS enable control)
+- **GPS_PPS_PIN**: PB0_ALT1 (Pulse Per Second input)
+
+#### Radio Interface (Si5351)
+- **VFO_SDA**: PB7 (I2C data)
+- **VFO_SCL**: PB6 (I2C clock)
+- **VFO_VCC_ON**: PB3 (Si5351 power control)
+
+#### Sensors
+- **Pressure Sensor**: PA12 (SDA), PA11 (SCL), PC6 (VCC) - LPS22 on dedicated I2C bus
+- **Voltage Monitor**: PB1 (ADC input with 2:1 voltage divider), PA0 (exposed ADC pin)
+
+#### Debug Interface
+- **PC_SERIAL_TX**: PA14 (Debug UART TX)
+- **PC_SERIAL_RX**: PA15 (Debug UART RX)
+
+
+## V1
+
+### 3D Visualization
+![3D PCB Render](hardware/v1/3d.png)
+
+### Schematic
+![Schematic](hardware/v1/SCH_Schematic1_1-P1_2025-08-19.png)
 
 ### Changes
 
@@ -82,7 +125,9 @@ Key parameters are defined in [`config.h`](src/config.h):
 #define THRESHOLD_VOLTAGE 2.2     // Minimum startup voltage
 ```
 
-The threshold voltage is used to enure there is enough power to the solar panels before trying to start up, as this can cause brownouts. If you draw too much current from solar cells, the voltage drops. 2.2v was found to work well for 4 0.5v solar cells.
+In V1, the threshold voltage is used to enure there is enough power to the solar panels before trying to start up, as this can cause brownouts. If you draw too much current from solar cells, the voltage drops. 2.2v was found to work well for 4 0.5v solar cells.
+
+This was fixed through a change in hardware design in V2.
 
 ## Building and Programming
 
